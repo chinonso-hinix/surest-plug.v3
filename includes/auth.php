@@ -157,7 +157,7 @@ function registerUser($fullName, $email, $password, $confirmPassword) {
     
     // Create welcome notification
     $notifStmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, 'system')");
-    $notifStmt->execute([$userId, 'Welcome to Surest Plug!', 'Your account has been successfully created. Fund your wallet or explore our digital marketplace services.', 'system']);
+    $notifStmt->execute([$userId, 'Welcome to Surest Plug!', 'Your account has been successfully created. Fund your wallet or explore our digital marketplace services.']);
     
     return [
         'success' => true,
