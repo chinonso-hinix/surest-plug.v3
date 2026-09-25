@@ -8,7 +8,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { User, Notification } from '../types';
 import { store } from '../lib/store';
-import { useBodyScrollLock } from '../lib/scrollLock';
 
 interface HeaderProps {
   currentUser: User | null;
@@ -30,8 +29,6 @@ export const Header: React.FC<HeaderProps> = ({
   // Single active dropdown state ensures only one dropdown is open at any time
   const [activeDropdown, setActiveDropdown] = useState<DropdownType>(null);
 
-  // Lock body scroll when notifications panel is open on mobile/tablet
-  useBodyScrollLock(activeDropdown === 'notifications');
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
