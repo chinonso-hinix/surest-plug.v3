@@ -1,0 +1,68 @@
+# Surest Plug - Apache Configuration for InfinityFree Hosting (htdocs)
+# Complete React SPA routing + Secure PHP API Gateway routing
+
+# Prevent Directory Listing
+Options -Indexes
+
+# Follow Symbolic Links
+Options +FollowSymLinks
+
+# Set Default Charset
+AddDefaultCharset UTF-8
+
+# Security Headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Protect sensitive files and directories
+<FilesMatch "^\.|\.(sql|env|lock|md|log|ini|sh|bak)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Apache mod_rewrite Rules
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # 1. Block direct access to server backend config folders
+    RewriteRule ^(config|includes)/ - [F,L,NC]
+
+    # 2. Block sensitive files
+    RewriteRule ^(database\.sql|\.env|\.git) - [F,L,NC]
+
+    # 3. Serve real existing files and directories directly (assets, images, robots.txt, etc.)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # 4. Allow existing .php files in /api/ to execute directly
+    RewriteRule ^api/.*\.php$ - [L]
+
+    # 5. Route all other /api/* requests to PHP API Gateway (api/index.php)
+    RewriteCond %{REQUEST_URI} ^/api/
+    RewriteRule ^api/(.*)$ api/index.php [QSA,L]
+
+    # 6. React SPA Routing Fallback: Route all application routes to /index.html
+    # Prevents 404 on refresh for /dashboard, /admin, /login, /register, /international-numbers, etc.
+    RewriteRule ^ index.html [L]
+</IfModule>
+
+# PHP Execution & Upload Settings (InfinityFree compatible)
+<IfModule mod_php7.c>
+    php_value upload_max_filesize 10M
+    php_value post_max_size 12M
+    php_value memory_limit 128M
+    php_value max_execution_time 60
+</IfModule>
+
+<IfModule mod_php8.c>
+    php_value upload_max_filesize 10M
+    php_value post_max_size 12M
+    php_value memory_limit 128M
+    php_value max_execution_time 60
+</IfModule>

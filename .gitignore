@@ -1,0 +1,21 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+.env
+
+# Local backups and temporary files
+*.zip
+temp_*.png
+temp_*.jpg
+
+# Local/runtime data
+data/
+intl_orders_store.json
+
+# Server-only production credentials
+/config/server_config.php

@@ -1,0 +1,6 @@
+{
+  "name": "Surest Plug - Digital Marketplace",
+  "description": "Production-ready digital marketplace for Ready-Made Websites, Custom Website Requests, and Social Media Account Boosting, deployable to InfinityFree with PHP, MySQL, Apache, and full customer & admin suites.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
