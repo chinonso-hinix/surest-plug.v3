@@ -105,13 +105,15 @@ function cartlogs_request(string $endpoint, string $method = 'GET', array $paylo
 
     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
     $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
     curl_close($ch);
 
-    if (!$response) {
+    if ($response === false || $curlError !== '') {
         return [
             'success' => false,
-            'error' => 'Failed to reach Cartlogs service. Please try again later.'
+            'error' => 'Cartlogs connection error: ' . $curlError,
+            'http_code' => $httpCode
         ];
     }
 
