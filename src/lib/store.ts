@@ -829,6 +829,26 @@ class Store {
   }
 
   /**
+   * Synchronize an already-approved MySQL deposit into the local cache.
+   * The PHP/MySQL endpoint remains authoritative for the actual wallet credit.
+   */
+  public syncApprovedDepositFromServer(serverDeposit: Deposit): Deposit {
+    const depositIndex = this.deposits.findIndex(d => d.id === serverDeposit.id);
+
+    if (depositIndex === -1) {
+      this.deposits.push(serverDeposit);
+    } else {
+      this.deposits[depositIndex] = {
+        ...this.deposits[depositIndex],
+        ...serverDeposit
+      };
+    }
+
+    this.save();
+    return serverDeposit;
+  }
+
+  /**
    * Synchronize a server-authenticated MySQL user into the local store.
    * The PHP/MySQL account remains the authoritative source for email/password auth.
    */
@@ -848,6 +868,28 @@ class Store {
     this.currentUser = user;
     this.save();
     return user;
+  }
+
+  /**
+   * Synchronize an authoritative MySQL transaction into the local cache.
+   * The PHP/MySQL endpoint remains authoritative for all financial values.
+   */
+  public syncServerTransaction(serverTransaction: Transaction): Transaction {
+    const transactionIndex = this.transactions.findIndex(
+      transaction => transaction.id === serverTransaction.id
+    );
+
+    if (transactionIndex === -1) {
+      this.transactions.unshift(serverTransaction);
+    } else {
+      this.transactions[transactionIndex] = {
+        ...this.transactions[transactionIndex],
+        ...serverTransaction
+      };
+    }
+
+    this.save();
+    return serverTransaction;
   }
 
   // Real Firebase User Synchronization with local MySQL representation
@@ -3749,69 +3791,6 @@ class Store {
     this.products = this.products.filter(p => p.id !== productId);
     idbDelete(`zip_prod_${productId}`);
     idbDelete(`img_prod_${productId}`);
-    this.save();
-    return { success: true };
-  }
-
-  public adjustUserBalance(userId: number, amount: number, type: 'credit' | 'debit', reason: string, adminId: number = 1): { success: boolean; error?: string } {
-    const userIndex = this.users.findIndex(u => u.id === userId);
-    if (userIndex === -1) {
-      return { success: false, error: 'User not found.' };
-    }
-
-    const user = this.users[userIndex];
-    const balanceBefore = user.balance;
-    let balanceAfter = balanceBefore;
-
-    if (type === 'credit') {
-      balanceAfter = Number((balanceBefore + amount).toFixed(2));
-    } else {
-      if (balanceBefore < amount) {
-        return { success: false, error: 'Cannot debit more than user current balance.' };
-      }
-      balanceAfter = Number((balanceBefore - amount).toFixed(2));
-    }
-
-    user.balance = balanceAfter;
-    this.users[userIndex] = user;
-
-    if (this.currentUser && this.currentUser.id === userId) {
-      this.currentUser = user;
-    }
-
-    const ref = `SP-ADM-${Math.floor(100000 + Math.random() * 900000)}`;
-
-    const newTx: Transaction = {
-      id: this.transactions.length > 0 ? Math.max(...this.transactions.map(t => t.id)) + 1 : 1,
-      user_id: user.id,
-      user_name: user.full_name,
-      user_email: user.email,
-      type: type === 'credit' ? 'admin_credit' : 'admin_debit',
-      amount,
-      currency: 'NGN',
-      balance_before: balanceBefore,
-      balance_after: balanceAfter,
-      reference: ref,
-      payment_reference: ref,
-      status: 'successful',
-      description: `Admin balance ${type}: ${reason}`,
-      payment_method: 'admin_adjustment',
-      created_at: new Date().toISOString()
-    };
-    this.transactions.unshift(newTx);
-    syncTransactionToFirestore(newTx, user.firebase_uid);
-
-    this.notifications.unshift({
-      id: Date.now(),
-      user_id: user.id,
-      title: `Wallet ${type === 'credit' ? 'Credited' : 'Debited'}`,
-      message: `Your wallet was ${type === 'credit' ? 'credited with' : 'debited by'} ₦${amount.toLocaleString()}. Reason: ${reason}`,
-      type: 'wallet',
-      link_route: 'wallet',
-      read_status: false,
-      created_at: new Date().toISOString()
-    });
-
     this.save();
     return { success: true };
   }

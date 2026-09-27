@@ -16,6 +16,7 @@ import {
 } from './lib/firebase';
 import { User, Product, Order, Transaction, Deposit, CustomOrder, SupportTicket, SystemSettings } from './types';
 import { loginWithPHP, registerWithPHP, getPHPCurrentUser } from './lib/phpAuth';
+import { approveDepositOnServer, adjustUserBalanceOnServer } from './lib/phpWallet';
 
 // Components
 import { Header } from './components/Header';
@@ -507,18 +508,40 @@ export const App: React.FC = () => {
   };
 
   const handleAdjustUserBalance = (userId: number, amount: number, type: 'credit' | 'debit', reason: string) => {
-    triggerLoading('Auditing balance adjustment....', () => {
-      store.adjustUserBalance(userId, amount, type, reason);
-      refreshData();
-      alert(`User balance ${type === 'credit' ? 'credited' : 'debited'} successfully with audit log!`);
+    triggerLoading('Auditing balance adjustment....', async () => {
+      const res = await adjustUserBalanceOnServer(userId, amount, type, reason);
+
+      if (res.success) {
+        if (res.user) {
+          store.syncServerUser(res.user as User);
+        }
+
+        if (res.transaction) {
+          store.syncServerTransaction(res.transaction as Transaction);
+        }
+
+        refreshData();
+        alert(`User balance ${type === 'credit' ? 'credited' : 'debited'} successfully with audit log!`);
+      } else {
+        alert(res.error || 'Failed to adjust user balance.');
+      }
     });
   };
 
   const handleApproveDeposit = (depositId: number) => {
-    triggerLoading('Approving deposit and crediting user....', () => {
-      const res = store.approveDeposit(depositId);
-      refreshData();
+    triggerLoading('Approving deposit and crediting user....', async () => {
+      const res = await approveDepositOnServer(depositId);
+
       if (res.success) {
+        if (res.user) {
+          store.syncServerUser(res.user as User);
+        }
+
+        if (res.deposit) {
+          store.syncApprovedDepositFromServer(res.deposit as Deposit);
+        }
+
+        refreshData();
         alert('Deposit approved and user wallet balance credited!');
       } else {
         alert(res.error || 'Failed to approve deposit.');
