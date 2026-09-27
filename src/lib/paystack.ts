@@ -9,6 +9,8 @@
  * - NEVER crashes or blocks React rendering.
  */
 
+import { User, Deposit, Transaction } from '../types';
+
 // Safely access environment variable with fallback
 export const PAYSTACK_PUBLIC_KEY = 
   (typeof (import.meta as any) !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_PAYSTACK_PUBLIC_KEY) 
@@ -121,6 +123,10 @@ export interface PaystackPaymentOptions {
     reference: string;
     amount: number;
     message: string;
+    user?: User;
+    deposit?: Deposit;
+    transaction?: Transaction;
+    alreadyProcessed?: boolean;
   }) => void;
   onCancel?: (message?: string) => void;
   onError: (errorMessage: string) => void;
@@ -240,7 +246,11 @@ export async function openPaystackPayment(options: PaystackPaymentOptions): Prom
           onSuccess({
             reference: verifyData.reference || verifiedRef,
             amount: finalAmount,
-            message: `Payment successful! ₦${finalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })} has been added to your wallet.`
+            message: `Payment successful! ₦${finalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })} has been added to your wallet.`,
+            user: verifyData.user,
+            deposit: verifyData.deposit,
+            transaction: verifyData.transaction,
+            alreadyProcessed: verifyData.alreadyProcessed
           });
         } else {
           onError(verifyData.error || 'Payment was not successful. No money was added to your wallet.');

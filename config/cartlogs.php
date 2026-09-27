@@ -57,7 +57,7 @@ function cartlogs_calculate_selling_price(float $supplierPrice): float {
 /**
  * Check if category/product is an SMM boosting service (which MUST be excluded from Cartlogs)
  */
-function cartlogs_is_boosting_service(string $title, string $categoryName = '', string $type = ''): boolean {
+function cartlogs_is_boosting_service(string $title, string $categoryName = '', string $type = ''): bool {
     $combined = strtolower($title . ' ' . $categoryName . ' ' . $type);
     $boostingKeywords = [
         'boost', 'boosting', 'smm', 'follower boost', 'likes boost', 'views boost',
@@ -85,7 +85,22 @@ function cartlogs_request(string $endpoint, string $method = 'GET', array $paylo
     }
 
     $url = CARTLOGS_API_BASE_URL . '/' . ltrim($endpoint, '/');
+
+    if (!function_exists('curl_init')) {
+        return [
+            'success' => false,
+            'error' => 'Cartlogs diagnostic: PHP cURL extension is not available on the server.'
+        ];
+    }
+
     $ch = curl_init();
+
+    if ($ch === false) {
+        return [
+            'success' => false,
+            'error' => 'Cartlogs diagnostic: curl_init() failed on the server.'
+        ];
+    }
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 25);

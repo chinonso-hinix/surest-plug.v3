@@ -78,10 +78,10 @@ function paystack_initialize(
     array $metadata = []
 ): array {
     $numericAmount = (float)$amountInNaira;
-    if ($numericAmount < 100) {
+    if ($numericAmount < 1000) {
         return [
             'success' => false,
-            'error' => 'Minimum deposit amount is ₦100.'
+            'error' => 'Minimum funding amount is ₦1,000.'
         ];
     }
     if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -227,6 +227,23 @@ function paystack_verify(
                     if (isset($txData['status']) && $txData['status'] === 'success') {
                         $paidKobo = (int)($txData['amount'] ?? 0);
                         $paidNaira = round($paidKobo / 100, 2);
+                        $currency = strtoupper((string)($txData['currency'] ?? 'NGN'));
+
+                        if ($currency !== 'NGN') {
+                            return [
+                                'success' => false,
+                                'verified' => false,
+                                'error' => 'Only NGN payments can be credited to the wallet.'
+                            ];
+                        }
+
+                        if ($paidNaira < 1000) {
+                            return [
+                                'success' => false,
+                                'verified' => false,
+                                'error' => 'Minimum funding amount is ₦1,000.'
+                            ];
+                        }
 
                         if ($expectedAmountInNaira !== null && $expectedAmountInNaira > 0) {
                             $expectedInt = (int)round($expectedAmountInNaira);
@@ -269,15 +286,11 @@ function paystack_verify(
         }
     }
 
-    // If secret key is not set, allow verified test mock for test mode reference
-    if (empty($secretKey) && (strpos($cleanRef, 'SP-PAY-') === 0 || strpos($cleanRef, 'T') === 0)) {
+    if (empty($secretKey)) {
         return [
-            'success' => true,
-            'verified' => true,
-            'reference' => $cleanRef,
-            'amount' => $expectedAmountInNaira ?: 1000,
-            'customerEmail' => $userEmail,
-            'gatewayResponse' => 'Approved (Test Mode)'
+            'success' => false,
+            'verified' => false,
+            'error' => 'Paystack server configuration is incomplete. Payment verification is unavailable.'
         ];
     }
 

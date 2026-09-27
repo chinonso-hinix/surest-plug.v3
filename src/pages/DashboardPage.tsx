@@ -270,17 +270,24 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       onSuccess: (result) => {
         setIsPaystackProcessing(false);
         setPaystackStatusMessage('');
-        
-        // Atomically credit wallet & update local store and Firestore
-        const creditResult = store.creditPaystackDeposit(
-          currentUser.id,
-          result.amount,
-          result.reference,
-          currentUser.email,
-          currentUser.full_name
-        );
 
-        if (creditResult.alreadyProcessed) {
+        // The PHP/MySQL endpoint is authoritative for wallet funding.
+        // Only synchronize the server-returned state into the local cache.
+        if (result.user) {
+          store.syncServerUser(result.user);
+        }
+
+        if (result.deposit) {
+          store.syncApprovedDepositFromServer(result.deposit);
+        }
+
+        if (result.transaction) {
+          store.syncServerTransaction(result.transaction);
+        }
+
+        refreshData();
+
+        if (result.alreadyProcessed) {
           setPaystackSuccessNotice({
             reference: result.reference,
             amount: result.amount,
